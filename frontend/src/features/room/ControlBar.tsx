@@ -70,7 +70,8 @@ export function ControlBar(props: ControlBarProps) {
 
     return (
         <div className={styles.bar} role="toolbar" aria-label="Meeting controls">
-            <div className={styles.group}>
+            {/* Core controls in the centre, where the eye rests; panels to the side. */}
+            <div className={`${styles.group} ${styles.core}`}>
                 <ControlButton
                     label={micOn ? "Turn off microphone" : "Turn on microphone"}
                     shortcut={`${MOD}+D`}
@@ -98,13 +99,19 @@ export function ControlBar(props: ControlBarProps) {
                         </ControlButton>
                     </span>
                 ) : null}
+                <span className={styles.endGroup}>
+                    {/* Always mounted, so screen readers announce the hint when it appears. */}
+                    <span className={styles.hint} role="status" data-shown={props.leaveHint ? "" : undefined} data-testid="leave-hint">
+                        {props.leaveHint}
+                    </span>
+                    <button type="button" className={styles.leave} onClick={props.onLeave} data-testid="leave-button">
+                        <PhoneOff size={18} aria-hidden="true" />
+                        <span>{props.leaveLabel}</span>
+                    </button>
+                </span>
             </div>
 
-            <div className={`${styles.group} ${styles.endGroup}`}>
-                {/* Always mounted, so screen readers announce the hint when it appears. */}
-                <span className={styles.hint} role="status" data-shown={props.leaveHint ? "" : undefined} data-testid="leave-hint">
-                    {props.leaveHint}
-                </span>
+            <div className={`${styles.group} ${styles.panels}`}>
                 <ControlButton
                     label={`People (${participantCount})`}
                     pressed={panel === "people"}
@@ -120,10 +127,6 @@ export function ControlBar(props: ControlBarProps) {
                 >
                     <MessageSquare size={20} aria-hidden="true" />
                 </ControlButton>
-                <button type="button" className={styles.leave} onClick={props.onLeave} data-testid="leave-button">
-                    <PhoneOff size={18} aria-hidden="true" />
-                    <span>{props.leaveLabel}</span>
-                </button>
             </div>
         </div>
     );

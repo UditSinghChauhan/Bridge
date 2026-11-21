@@ -1,9 +1,18 @@
 .bar {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-3);
     padding: var(--space-3) 0 0;
+}
+
+.core {
+    grid-column: 2;
+}
+
+.panels {
+    grid-column: 3;
+    justify-self: end;
 }
 
 .group {
@@ -64,7 +73,7 @@
     font-weight: 500;
     white-space: nowrap;
     opacity: 0;
-    transform: translate(-50%, 4px);
+    transform: translate(-4px, -50%);
     pointer-events: none;
     transition: opacity var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
 }
@@ -108,11 +117,15 @@
 
 .endGroup {
     position: relative;
+    display: inline-flex;
+    margin-left: var(--space-2);
 }
 
-/* A quiet nudge beside the controls: room surface, no arrow, nothing that competes with the call. */
+/* A quiet nudge just right of End, in the bar's free space so it never covers a tile. */
 .hint {
-    margin-right: var(--space-2);
+    position: absolute;
+    top: 50%;
+    left: calc(100% + var(--space-3));
     padding: 6px 10px;
     border-radius: var(--radius-sm);
     background: var(--room-raised);
@@ -122,7 +135,7 @@
     font-weight: 500;
     white-space: nowrap;
     opacity: 0;
-    transform: translateY(4px);
+    transform: translate(-4px, -50%);
     pointer-events: none;
     transition: opacity 250ms cubic-bezier(0.23, 1, 0.32, 1), transform 250ms cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -133,12 +146,13 @@
 
 .hint[data-shown] {
     opacity: 1;
-    transform: none;
+    transform: translate(0, -50%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hint {
-        transform: none;
+    .hint,
+    .hint[data-shown] {
+        transform: translate(0, -50%);
         transition: none;
     }
 }
@@ -147,13 +161,33 @@
     filter: brightness(1.1);
 }
 
+@media (max-width: 960px) {
+    /* Too narrow to centre the controls and keep the hint clear of the panel
+       buttons: core controls go left, which opens the space right of End. */
+    .bar {
+        grid-template-columns: auto 1fr;
+    }
+
+    .core {
+        grid-column: 1;
+    }
+
+    .panels {
+        grid-column: 2;
+    }
+}
+
 @media (max-width: 640px) {
-    /* No room beside the buttons on phones: the hint floats above End instead. */
+    /* No free space beside End on phones: the hint floats above it instead. */
     .hint {
-        position: absolute;
-        right: 0;
+        top: auto;
         bottom: calc(100% + 8px);
-        margin: 0;
+        left: 0;
+        transform: translateY(4px);
+    }
+
+    .hint[data-shown] {
+        transform: none;
     }
 
     .desktopOnly {
