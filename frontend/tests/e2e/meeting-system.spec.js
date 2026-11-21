@@ -191,6 +191,23 @@ test.describe("Bridge meeting lifecycle", () => {
         await expect(page.getByText("Enter your password.")).toBeVisible();
     });
 
+    test("sign-in returns to in-app paths only, never to another site", async ({ browser }) => {
+        const { context, page } = await signUp(browser, "Olive Origin");
+        const appOrigin = new URL(page.url()).origin;
+        const nextUrl = (next) => `/auth?next=${encodeURIComponent(next)}`;
+
+        await page.goto(nextUrl("/history"));
+        await expect(page).toHaveURL(`${appOrigin}/history`);
+
+        // Browsers read "\" as "/" and drop tabs, so each of these is "//evil.example" in disguise.
+        for (const next of ["//evil.example", "/\\evil.example", "/\t/evil.example", "https://evil.example/home"]) {
+            await page.goto(nextUrl(next));
+            await expect(page, next).toHaveURL(`${appOrigin}/home`);
+        }
+
+        await context.close();
+    });
+
     test("the public demo works without an account", async ({ page }) => {
         await page.goto("/demo");
         await page.getByTestId("join-meeting-button").click();

@@ -8,6 +8,7 @@ import { Logo } from "../components/Logo";
 import { WakeNotice } from "../components/WakeNotice";
 import { getErrorMessage, wakeServer } from "../lib/api";
 import { parseMeetingInput } from "../lib/meetingCode";
+import { safeRedirectPath } from "../lib/safeRedirect";
 import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useElapsedAfter } from "../lib/useElapsedAfter";
 import styles from "./AuthPage.module.css";
@@ -37,9 +38,6 @@ const validate = (mode: Mode, values: { name: string; username: string; password
     return errors;
 };
 
-/** Only same-origin paths are accepted as a post-login destination. */
-const safeNext = (value: string | null) => (value && value.startsWith("/") && !value.startsWith("//") ? value : "/home");
-
 /** The meeting code when the visitor arrived from an invite link (/room/<code>). */
 const invitedMeetingFor = (next: string): string | null => {
     const code = /^\/room\/([^/?#]+)/.exec(next)?.[1];
@@ -56,7 +54,8 @@ export default function AuthPage() {
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
     const mode: Mode = params.get("mode") === "signup" ? "signup" : "signin";
-    const next = safeNext(params.get("next"));
+    // Only same-origin paths are accepted as a post-login destination.
+    const next = safeRedirectPath(params.get("next"));
     const invitedTo = invitedMeetingFor(next);
     useDocumentTitle(invitedTo ? `Join ${invitedTo}` : mode === "signup" ? "Create an account" : "Sign in");
     const [values, setValues] = useState({ name: "", username: "", password: "" });
