@@ -112,6 +112,40 @@
     background: var(--success);
 }
 
+/* The meter replaces the status dot while the microphone is live. */
+.devices li:has(.meter)::before {
+    display: none;
+}
+
+.meter {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 12px;
+}
+
+.meter span {
+    width: 3px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--success);
+    transform-origin: center;
+    transform: scaleY(calc(0.28 + var(--level, 0) * 0.72));
+    transition: transform 90ms linear;
+}
+
+/* The outer bars move less than the centre one, so speech reads as a shape. */
+.meter span:first-child,
+.meter span:last-child {
+    transform: scaleY(calc(0.28 + var(--level, 0) * 0.45));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .meter span {
+        transition: none;
+    }
+}
+
 .devices li[data-status="blocked"] {
     color: var(--danger);
 }

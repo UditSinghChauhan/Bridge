@@ -28,7 +28,8 @@ const recapAvatar = (name: string) => {
     const member = castByName(name);
     return member ? <Face person={member.id} size={20} /> : undefined;
 };
-const recapTeam = () => <FaceStack people={DEMO_PARTICIPANTS.map((p) => p.id)} label="Everyone" />;
+// "We" is the whole call: the three teammates and the visitor.
+const recapTeam = () => <FaceStack people={DEMO_PARTICIPANTS.map((p) => p.id)} others={1} label="Everyone" />;
 
 export default function DemoPage() {
     useDocumentTitle("Live demo");
@@ -202,6 +203,7 @@ export default function DemoPage() {
                 meetingId={DEMO_MEETING_ID}
                 displayName="You"
                 previewStream={media.previewStream}
+                micTrack={media.outgoing.audio}
                 micOn={media.micOn}
                 cameraOn={media.cameraOn}
                 micStatus={media.micStatus}

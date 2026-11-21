@@ -332,6 +332,7 @@ function MeetingRoom({ meetingId }: { meetingId: string }) {
                     displayName={displayName}
                     username={user?.username}
                     previewStream={localMedia.previewStream}
+                    micTrack={localMedia.outgoing.audio}
                     micOn={localMedia.micOn}
                     cameraOn={localMedia.cameraOn}
                     micStatus={localMedia.micStatus}
