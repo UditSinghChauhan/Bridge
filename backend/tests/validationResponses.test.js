@@ -11,7 +11,12 @@ process.env.LOG_LEVEL = "error";
 const { validate } = await import("../src/middlewares/validate.js");
 const { errorHandler } = await import("../src/middlewares/errorHandler.js");
 const { csrfHeaderSchema, loginSchema, registerSchema } = await import("../src/validators/user.schemas.js");
-const { createMeetingSchema, meetingIdSchema, updateMeetingSettingsSchema } = await import("../src/validators/meeting.schemas.js");
+const {
+    createMeetingSchema,
+    meetingIdSchema,
+    removeParticipantSchema,
+    updateMeetingSettingsSchema
+} = await import("../src/validators/meeting.schemas.js");
 
 const appFor = (schema, source = "body") => {
     const app = express();
@@ -91,6 +96,17 @@ test("custom schema messages still win over the legacy defaults", async () => {
     const empty = await request(appFor(updateMeetingSettingsSchema)).post("/check").send({});
     await expectValidationError(empty, "At least one meeting setting must be provided", [
         { path: "", message: "At least one meeting setting must be provided" }
+    ]);
+});
+
+test("participant removal keeps both the legacy and the custom message", async () => {
+    const missing = await request(appFor(removeParticipantSchema)).post("/check").send({});
+    await expectValidationError(missing, "Required", [{ path: "participantUserId", message: "Required" }]);
+
+    const malformed = await request(appFor(removeParticipantSchema)).post("/check")
+        .send({ participantUserId: "not-an-object-id" });
+    await expectValidationError(malformed, "Participant user ID is invalid", [
+        { path: "participantUserId", message: "Participant user ID is invalid" }
     ]);
 });
 
