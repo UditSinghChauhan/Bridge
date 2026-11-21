@@ -71,7 +71,7 @@ const VERBS = new Set([
     "try", "keep", "talk", "say", "tell", "ask", "help", "use", "make", "find", "give", "come", "go", "see",
     "write", "read", "close", "open", "cut", "set", "discuss", "decide", "finish", "handle", "deploy", "roll",
     "pick", "join", "leave", "wait", "hold", "bring", "build", "change", "remove", "copy", "test", "clean",
-    "post", "drop", "land", "announce", "confirm", "assign", "block", "unblock", "approve", "review"
+    "post", "drop", "land", "announce", "confirm", "assign", "block", "unblock", "approve", "review", "pass"
 ]);
 
 const DETERMINERS = new Set(["the", "a", "an", "this", "that", "these", "those", "our", "my", "your", "their", "his", "her", "its", "each", "every", "no", "any"]);
