@@ -27,5 +27,11 @@ export const safeRedirectPath = (
 
     if (resolved.origin !== new URL(origin).origin) return fallback;
 
-    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    // Dot segments can collapse into a leading `//`: `/.//evil.com` and
+    // `/a/..//evil.com` resolve on our origin to the path `//evil.com`, which the
+    // router would then treat as a protocol-relative URL to another host.
+    const path = `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    if (/^\/[/\\]/.test(path)) return fallback;
+
+    return path;
 };

@@ -51,6 +51,30 @@ describe("safeRedirectPath rejects off-site and malformed destinations", () => {
         expect(check(value)).toBe(DEFAULT_REDIRECT);
     });
 
+    // Each of these passes the prefix check and resolves on our own origin, but
+    // dot-segment removal leaves the path `//evil.com`.
+    test.each([
+        ["single dot", "/.//evil.com"],
+        ["parent segment", "/a/..//evil.com"],
+        ["dot then backslash", "/./\\evil.com"],
+        ["encoded dot", "/%2e//evil.com"],
+        ["encoded double dot", "/%2E%2E//evil.com"],
+        ["encoded parent segment", "/x/%2e%2e//evil.com"],
+        ["dot then tab", "/.\t//evil.com"]
+    ])("%s collapsing to //host", (_label, value) => {
+        expect(check(value)).toBe(DEFAULT_REDIRECT);
+    });
+
+    test.each([
+        ["control character", "/\u0001/evil.com", "/%01/evil.com"],
+        ["encoded backslash", "/%5Cevil.com", "/%5Cevil.com"],
+        ["encoded tab", "/%09/evil.com", "/%09/evil.com"],
+        ["path parameter", "/;//evil.com", "/;//evil.com"],
+        ["double slash later in the path", "/room//evil.com", "/room//evil.com"]
+    ])("%s stays a path on our own site", (_label, value, expected) => {
+        expect(check(value)).toBe(expected);
+    });
+
     test("an encoded slash stays a path on our own site", () => {
         // `/%2F%2Fevil.com` is a single path segment, never a host.
         expect(check("/%2F%2Fevil.com")).toBe("/%2F%2Fevil.com");

@@ -199,8 +199,13 @@ test.describe("Bridge meeting lifecycle", () => {
         await page.goto(nextUrl("/history"));
         await expect(page).toHaveURL(`${appOrigin}/history`);
 
-        // Browsers read "\" as "/" and drop tabs, so each of these is "//evil.example" in disguise.
-        for (const next of ["//evil.example", "/\\evil.example", "/\t/evil.example", "https://evil.example/home"]) {
+        // Browsers read "\" as "/", drop tabs and collapse dot segments, so each of
+        // these is "//evil.example" in disguise.
+        const offSite = [
+            "//evil.example", "/\\evil.example", "/\t/evil.example", "/.//evil.example",
+            "/a/..//evil.example", "https://evil.example/home"
+        ];
+        for (const next of offSite) {
             await page.goto(nextUrl(next));
             await expect(page, next).toHaveURL(`${appOrigin}/home`);
         }
