@@ -4,6 +4,7 @@ import { PageHeading, PageShell } from "../components/PageShell";
 import { MeetingList, MeetingListEmpty, MeetingListError, MeetingListSkeleton } from "../features/meetings/MeetingList";
 import { useMeetingHistory } from "../features/meetings/useMeetingHistory";
 import styles from "./HistoryPage.module.css";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 type Filter = "all" | "active" | "ended";
 
@@ -14,6 +15,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 ];
 
 export default function HistoryPage() {
+    useDocumentTitle("History");
     const { state, reload } = useMeetingHistory();
     const [filter, setFilter] = useState<Filter>("all");
 

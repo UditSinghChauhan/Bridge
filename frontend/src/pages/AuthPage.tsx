@@ -7,6 +7,8 @@ import { FullPageSpinner } from "../components/FullPageSpinner";
 import { Logo } from "../components/Logo";
 import { WakeNotice } from "../components/WakeNotice";
 import { getErrorMessage, wakeServer } from "../lib/api";
+import { parseMeetingInput } from "../lib/meetingCode";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { useElapsedAfter } from "../lib/useElapsedAfter";
 import styles from "./AuthPage.module.css";
 
@@ -38,12 +40,25 @@ const validate = (mode: Mode, values: { name: string; username: string; password
 /** Only same-origin paths are accepted as a post-login destination. */
 const safeNext = (value: string | null) => (value && value.startsWith("/") && !value.startsWith("//") ? value : "/home");
 
+/** The meeting code when the visitor arrived from an invite link (/room/<code>). */
+const invitedMeetingFor = (next: string): string | null => {
+    const code = /^\/room\/([^/?#]+)/.exec(next)?.[1];
+    if (!code) return null;
+    try {
+        return parseMeetingInput(decodeURIComponent(code));
+    } catch {
+        return null; // A malformed escape in a hand-edited link.
+    }
+};
+
 export default function AuthPage() {
     const { status, signIn, signUp } = useAuth();
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
     const mode: Mode = params.get("mode") === "signup" ? "signup" : "signin";
     const next = safeNext(params.get("next"));
+    const invitedTo = invitedMeetingFor(next);
+    useDocumentTitle(invitedTo ? `Join ${invitedTo}` : mode === "signup" ? "Create an account" : "Sign in");
     const [values, setValues] = useState({ name: "", username: "", password: "" });
     const [errors, setErrors] = useState<FieldErrors>({});
     const [formError, setFormError] = useState<string | null>(null);
@@ -123,11 +138,18 @@ export default function AuthPage() {
 
             <main id="main" className={styles.main}>
                 <div className={styles.card}>
-                    <h1 className={styles.title}>{isSignUp ? "Create your account" : "Welcome back"}</h1>
+                    {invitedTo ? <p className={styles.invite}>{invitedTo}</p> : null}
+                    <h1 className={styles.title}>
+                        {invitedTo ? "You’re invited to a call" : isSignUp ? "Create your account" : "Welcome back"}
+                    </h1>
                     <p className={styles.subtitle}>
-                        {isSignUp
-                            ? "Host meetings, invite anyone with a link, and keep a recap of every call."
-                            : "Sign in to start or join a meeting."}
+                        {invitedTo
+                            ? isSignUp
+                                ? "Create a free account to join. It takes a name, a username and a password; no email."
+                                : "Sign in to join, or create a free account. No email needed."
+                            : isSignUp
+                                ? "Host meetings, invite anyone with a link, and keep a recap of every call."
+                                : "Sign in to start or join a meeting."}
                     </p>
 
                     <form className={styles.form} onSubmit={submit} noValidate>

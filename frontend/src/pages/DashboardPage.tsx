@@ -10,6 +10,7 @@ import { useMeetingHistory } from "../features/meetings/useMeetingHistory";
 import { getErrorMessage, meetingsApi } from "../lib/api";
 import { parseMeetingInput } from "../lib/meetingCode";
 import styles from "./DashboardPage.module.css";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const greeting = (date = new Date()) => {
     const hour = date.getHours();
@@ -20,6 +21,7 @@ const greeting = (date = new Date()) => {
 };
 
 export default function DashboardPage() {
+    useDocumentTitle("Meetings");
     const { user } = useAuth();
     const navigate = useNavigate();
     const { state, reload } = useMeetingHistory();

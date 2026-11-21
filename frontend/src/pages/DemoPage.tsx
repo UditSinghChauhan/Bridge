@@ -15,6 +15,7 @@ import type { TileModel } from "../features/room/types";
 import { useLocalMedia } from "../features/room/useLocalMedia";
 import type { ChatMessage, MeetingRecap } from "../lib/types";
 import styles from "./DemoPage.module.css";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 type Phase = "lobby" | "call" | "ended";
 
@@ -30,6 +31,7 @@ const recapAvatar = (name: string) => {
 const recapTeam = () => <FaceStack people={DEMO_PARTICIPANTS.map((p) => p.id)} label="Everyone" />;
 
 export default function DemoPage() {
+    useDocumentTitle("Live demo");
     const toast = useToast();
     const [phase, setPhase] = useState<Phase>("lobby");
     const [participants, setParticipants] = useState<DemoParticipant[]>(DEMO_PARTICIPANTS);

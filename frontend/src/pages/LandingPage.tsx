@@ -11,9 +11,11 @@ import { Faq } from "../features/landing/faq/Faq";
 import { HeroDemo } from "../features/landing/hero/HeroDemo";
 import { LandingNav } from "../features/landing/nav/LandingNav";
 import { Reveal } from "../features/landing/Reveal";
+import { useLightChrome } from "../features/landing/useLightChrome";
 import { wakeServer } from "../lib/api";
 import { AUTHOR_URL, LINKEDIN_URL, REPOSITORY_URL } from "../lib/env";
 import { initialsFor } from "../lib/format";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import styles from "./LandingPage.module.css";
 
 // Below the fold: the illustrated sections load as they approach the viewport.
@@ -76,6 +78,8 @@ export default function LandingPage() {
     const signedIn = status === "authenticated";
     const startHref = signedIn ? "/home" : "/auth?mode=signup";
     const startLabel = signedIn ? "Go to your meetings" : "Start a meeting";
+    useDocumentTitle();
+    useLightChrome();
 
     // The API sleeps on free hosting. Start it booting once the page has
     // painted, so "Start a meeting" is usually instant by the time it is clicked.

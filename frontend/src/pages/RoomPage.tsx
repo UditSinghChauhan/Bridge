@@ -15,6 +15,7 @@ import { useMeetingConnection } from "../features/room/useMeetingConnection";
 import { getErrorCode, getErrorMessage, getErrorStatus, meetingsApi } from "../lib/api";
 import { inviteLinkFor, parseMeetingInput } from "../lib/meetingCode";
 import type { Meeting } from "../lib/types";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 type Phase =
     | { kind: "checking" }
@@ -30,6 +31,7 @@ const ROOM_FOLD_MS = 460;
 export default function RoomPage() {
     const { roomId: rawRoomId = "" } = useParams();
     const meetingId = parseMeetingInput(rawRoomId);
+    useDocumentTitle(meetingId ?? "Meeting");
 
     if (!meetingId) {
         return (
