@@ -64,6 +64,27 @@ export const formatRelative = (value: string | Date, now: Date = new Date()): st
     return formatDateTime(value);
 };
 
+const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "long" });
+const monthDayFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+const fullDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+const startOfDay = (date: Date): number => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+/**
+ * A list date the way Mail and Messages show one: the time for today,
+ * "Yesterday", the weekday within the last week, then "Nov 14" (with the year
+ * once it is not this year). Calendar days in the viewer's time zone.
+ */
+export const formatCalendarDay = (value: string | Date, now: Date = new Date()): string => {
+    const date = new Date(value);
+    const days = Math.round((startOfDay(now) - startOfDay(date)) / (24 * HOUR));
+
+    if (days <= 0) return formatTime(date);
+    if (days === 1) return "Yesterday";
+    if (days < 7) return weekdayFormatter.format(date);
+    return date.getFullYear() === now.getFullYear() ? monthDayFormatter.format(date) : fullDateFormatter.format(date);
+};
+
 export const initialsFor = (name: string): string => {
     const parts = name.trim().split(/[\s_.-]+/).filter(Boolean);
 

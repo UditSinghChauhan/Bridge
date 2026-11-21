@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { avatarColorFor, formatDuration, formatElapsed, formatRelative, initialsFor, pluralize } from "./format";
+import { avatarColorFor, formatCalendarDay, formatDuration, formatElapsed, formatRelative, initialsFor, pluralize } from "./format";
 
 describe("formatDuration", () => {
     test("handles missing values", () => {
@@ -55,4 +55,24 @@ test("avatarColorFor is stable per name", () => {
 test("pluralize", () => {
     expect(pluralize(1, "person", "people")).toBe("1 person");
     expect(pluralize(3, "person", "people")).toBe("3 people");
+});
+
+describe("formatCalendarDay", () => {
+    // Local times, so the calendar day is the same in every test time zone.
+    const now = new Date(2026, 10, 21, 18, 30);
+
+    test("shows the time for today", () => {
+        expect(formatCalendarDay(new Date(2026, 10, 21, 9, 5), now)).toMatch(/9:05/);
+    });
+
+    test("names yesterday and the rest of the past week", () => {
+        expect(formatCalendarDay(new Date(2026, 10, 20, 23, 59), now)).toBe("Yesterday");
+        expect(formatCalendarDay(new Date(2026, 10, 18, 10, 0), now)).toMatch(/Wednesday/);
+    });
+
+    test("falls back to the date, adding the year only when it differs", () => {
+        expect(formatCalendarDay(new Date(2026, 10, 14, 9, 0), now)).toMatch(/Nov 14/);
+        expect(formatCalendarDay(new Date(2026, 10, 14, 9, 0), now)).not.toMatch(/2026/);
+        expect(formatCalendarDay(new Date(2025, 11, 30, 9, 0), now)).toMatch(/2025/);
+    });
 });
