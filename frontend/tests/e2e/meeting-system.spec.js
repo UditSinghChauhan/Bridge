@@ -221,10 +221,15 @@ test.describe("Bridge meeting lifecycle", () => {
         await page.getByLabel("Message everyone").fill("Hello team");
         await page.keyboard.press("Enter");
         await expect(page.getByTestId("chat-log")).toContainText("Hello team");
+        // The scripted stand-up plays out over ~32s and the recap is built from what
+        // was said, so ending the call early correctly yields "Not much to recap".
+        // The hint appears once the script has finished.
+        await expect(page.getByTestId("leave-hint")).toHaveText("End the call to see the recap", { timeout: 45_000 });
         await page.getByTestId("leave-button").click();
         await page.getByTestId("confirm-end-meeting").click();
         await expect(page.getByRole("heading", { name: "Meeting recap" })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Key points" })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Action items" })).toBeVisible();
         await expect(page.getByTestId("recap")).toContainText("Hello team");
     });
 
