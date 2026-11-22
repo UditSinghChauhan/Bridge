@@ -6,7 +6,10 @@ import { session } from "../../lib/session";
 import type { ChatMessage, MediaState, MeetingParticipant, MeetingSettings } from "../../lib/types";
 import { PeerMesh, resolveIceServers, type OutgoingTracks, type PeerConnectionState } from "./peerMesh";
 
-export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "ended" | "removed" | "replaced" | "failed";
+// Resolved once: every peer connection in every meeting uses the same list.
+const ICE_SERVERS = resolveIceServers();
+
+export type ConnectionStatus ="connecting" | "connected" | "reconnecting" | "ended" | "removed" | "replaced" | "failed";
 
 export interface RemotePeer {
     socketId: string;
@@ -200,7 +203,7 @@ export function useMeetingConnection({ meetingId, enabled, outgoing, media, onNo
         let fallbackMessageId = 0;
 
         const mesh = new PeerMesh({
-            iceServers: resolveIceServers(),
+            iceServers: ICE_SERVERS,
             sendSignal: (toId, payload) => socket.emit("signal", toId, payload),
             onRemoteStream: (socketId, stream) => dispatch({ type: "peer-stream", socketId, stream }),
             onConnectionState: (socketId, connection) => dispatch({ type: "peer-connection", socketId, connection }),
