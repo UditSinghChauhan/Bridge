@@ -256,24 +256,93 @@ export class PeerMesh {
     }
 }
 
-const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
+export const DEFAULT_ICE_SERVERS: RTCIceServer[] = [
     { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }
 ];
 
+const ICE_URL = /^(stun|turns?):\S+$/i;
+const RELAY_URL = /^turns?:/i;
+
+const warnIceConfig = (message: string) => {
+    // Deliberately never logs the entry itself: it holds the TURN credential.
+    console.warn(`VITE_ICE_SERVERS: ${message} Calls fall back to STUN for those servers.`);
+};
+
 /**
- * STUN alone cannot traverse symmetric NATs or strict corporate networks.
- * VITE_ICE_SERVERS accepts a JSON array of RTCIceServer (for example a TURN
- * server) without a code change.
+ * Returns the entry in the shape RTCPeerConnection accepts, or null. The
+ * browser throws on construction for an unknown scheme or a TURN URL without
+ * credentials, which would break every call, so such entries are dropped.
+ */
+const toIceServer = (entry: unknown): RTCIceServer | null => {
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+        return null;
+    }
+
+    const { urls, username, credential } = entry as Record<string, unknown>;
+    const list: unknown[] = typeof urls === "string" ? [urls] : Array.isArray(urls) ? urls : [];
+
+    if (list.length === 0 || !list.every((url): url is string => typeof url === "string" && ICE_URL.test(url))) {
+        return null;
+    }
+
+    const isRelay = list.some((url) => RELAY_URL.test(url as string));
+
+    if (isRelay && (typeof username !== "string" || !username || typeof credential !== "string" || !credential)) {
+        return null;
+    }
+
+    return isRelay
+        ? { urls: list as string[], username: username as string, credential: credential as string }
+        : { urls: list as string[] };
+};
+
+/**
+ * STUN alone cannot traverse symmetric NATs, carrier-grade NAT or strict
+ * corporate firewalls; a TURN relay is needed for those networks.
+ *
+ * VITE_ICE_SERVERS takes a JSON array of RTCIceServer, such as the ICE servers
+ * array a TURN provider issues. Valid entries are added to the default STUN
+ * servers (never replacing them); invalid entries are dropped with a warning,
+ * and missing or malformed JSON leaves the defaults on their own.
  */
 export const resolveIceServers = (raw: string | undefined = import.meta.env.VITE_ICE_SERVERS): RTCIceServer[] => {
-    if (!raw) {
+    if (!raw?.trim()) {
         return DEFAULT_ICE_SERVERS;
     }
 
+    let parsed: unknown;
+
     try {
-        const parsed: unknown = JSON.parse(raw);
-        return Array.isArray(parsed) && parsed.length > 0 ? (parsed as RTCIceServer[]) : DEFAULT_ICE_SERVERS;
+        parsed = JSON.parse(raw);
     } catch {
+        warnIceConfig("is not valid JSON (keys and strings need double quotes, no trailing commas).");
         return DEFAULT_ICE_SERVERS;
     }
+
+    if (!Array.isArray(parsed)) {
+        warnIceConfig("must be a JSON array of ICE servers.");
+        return DEFAULT_ICE_SERVERS;
+    }
+
+    const seen = new Set(DEFAULT_ICE_SERVERS.flatMap(({ urls }) => urls).map((url) => url.toLowerCase()));
+    const configured: RTCIceServer[] = [];
+
+    parsed.forEach((entry, index) => {
+        const server = toIceServer(entry);
+
+        if (!server) {
+            warnIceConfig(`entry ${index} was ignored: it needs "urls" (stun:, turn: or turns:) and, for turn:, a username and credential.`);
+            return;
+        }
+
+        // Skip URLs that are already listed, such as the default STUN servers.
+        const urls = (server.urls as string[]).filter((url) => !seen.has(url.toLowerCase()));
+        urls.forEach((url) => seen.add(url.toLowerCase()));
+
+        if (urls.length > 0) {
+            configured.push({ ...server, urls });
+        }
+    });
+
+    return [...DEFAULT_ICE_SERVERS, ...configured];
 };

@@ -113,7 +113,7 @@ npm run dev
 ## Limits and trade-offs
 
 - **Call size.** A mesh sends every stream to every peer, so calls work best with up to about six people. An SFU (for example LiveKit or mediasoup) is the next step past that.
-- **Restrictive networks.** Only STUN is configured by default. Peers behind symmetric NATs or strict corporate firewalls need a TURN relay, which can be supplied through `VITE_ICE_SERVERS` without code changes.
+- **Restrictive networks.** Peers behind symmetric NATs, carrier-grade NAT or strict corporate firewalls need a TURN relay. `VITE_ICE_SERVERS` takes a provider's ICE servers array as JSON and adds it to the default STUN servers (format in `frontend/.env.example`). It is a build-time value embedded in the public bundle, so it must hold a revocable TURN credential, never an account secret. Without it, only STUN is used.
 - **Guests need an account.** Joining a real meeting needs a free account (name, username and password; no email). The demo needs none.
 - **Rule-based recaps.** Deterministic and private, but they read commitments, not nuance. An LLM summariser could sit behind the same recap shape.
 
