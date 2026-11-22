@@ -65,7 +65,10 @@ App UI: 150–250 ms, `cubic-bezier(0.2, 0, 0, 1)`, transform and opacity only. 
 - **Button**: `primary` (ink), `secondary` (surface + border), `ghost`, `danger`. Sizes `sm` 32, `md` 40, `lg` 48 px. Loading state keeps the width and shows a spinner.
 - **Field**: label above, hint or error below, error linked with `aria-describedby`.
 - **Control button** (room): 48 px round, labelled, tooltip with keyboard shortcut, `aria-pressed` for toggles. Off-state for mic/camera is filled red so it reads at a glance.
-- **Video tile**: 16:9, radius 14, name chip bottom-left, mic-off badge, accent ring while speaking, avatar when the camera is off, `contain` fit for screen shares.
+- **Control bar** (room): microphone, camera, present and End centred under the call; People and Chat at the right edge. Below 960 px the core group moves left so the space beside End stays free. The demo's "End the call" hint sits just right of End (above it on phones), never over a tile.
+- **Meeting row** (home, history): one link per row. Avatar stack (first person on top, 6 px overlap, initials nudged into the visible part), then the recap's decision as the headline, then code · people · length · who hosted, then a Mail-style date ("10:00 AM", "Yesterday", "Wednesday", "Nov 14") and a chevron. A live call shows "Started … ago" and a Rejoin pill, and is listed once.
+- **Mic meter** (lobby): three bars beside "Microphone on" that follow your voice, sampled every 60 ms and drawn with `transform` only.
+- **Video tile**: 16:9 on landscape stages; on a portrait stage each tile takes its cell's shape between 3:4 and 16:9, so four people fill a phone as a 2×2 grid (`gridLayout.ts`). Radius 14, name chip bottom-left, mic-off badge, accent ring while speaking, avatar when the camera is off, `contain` fit for screen shares.
 - **Toast**: bottom-centre, polite live region, auto-dismiss 5 s; errors are `role="alert"`.
 
 ## States
@@ -161,3 +164,7 @@ The landing page was correct and forgettable: no faces anywhere, a blank first f
 ### 2026-11-03: Landing v3, fewer and better things
 
 v2 proved the product was real but repeated itself: the four-person grid six times, heavy black frames on a light page, a 7-link nav and four sections of engineering documentation, at 11,969 px on desktop. Decision: seven sections, light only, structured like bydefault.so (rails, a hero card, a floating nav, small centred headings, product UI as HTML cards, one dark band, an FAQ). The engineering material moved to `docs/CASE_STUDY.md`. The recap engine was fixed first, because the page shows its output. Reasoning: `docs/LANDING_V3.md`.
+
+### 2026-11-21: The product matches the landing page
+
+The landing page promised a history where every call sits a click away with its recap; the app showed a table of room codes with a "Recap" button, listed a live call twice on Home, and pinned the call controls to the screen edges. Decision: hold the signed-in app to the landing's bar. Meeting rows lead with the recap's decision and the people in it, and are one link each; the core call controls are centred as in FaceTime, Meet and Zoom; phones get a filled 2×2 call instead of stacked strips; the lobby gets a live mic meter so you know you'll be heard before you join. Smaller fixes: per-page titles, an invite-aware sign-in screen, server errors in plain words, the landing's browser chrome on dark-mode phones, and absolute share-card URLs.

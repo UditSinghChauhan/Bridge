@@ -77,3 +77,16 @@ test("a hiring sync keeps single-word topics only when they repeat", () => {
     assert.ok(!keywords.includes("accessibility"), "a word said once is not a topic on its own");
     assert.ok(!keywords.includes("schedule") && !keywords.includes("week"));
 });
+
+test("\"a final pass\" is work to do, not a topic", () => {
+    // The public demo's script plus a visitor's own line: "pass" recurred and surfaced as a lone topic chip.
+    const { keywords } = generateMeetingSummary(chat([
+        ["Maya Patel", "Morning! Agenda: the pricing page, then the signup bug."],
+        ["Maya Patel", "Good. The launch email for the pricing page still needs a final pass."],
+        ["Jordan Lee", "I'll send the launch email to design by Thursday."],
+        ["You", "I'll do the final pass on the launch email by Friday."]
+    ]));
+
+    assert.ok(!keywords.includes("pass"), JSON.stringify(keywords));
+    assert.ok(keywords.includes("launch email"), JSON.stringify(keywords));
+});

@@ -174,6 +174,11 @@ export const getErrorMessage = (error: unknown, fallback: string): string => {
             return "Too many attempts. Wait a minute and try again.";
         }
 
+        // A 5xx message is written for logs ("Internal server error"), not for people.
+        if ((error.response?.status ?? 0) >= 500) {
+            return "Bridge hit a problem on its side. Try again in a moment.";
+        }
+
         return error.response?.data?.message || fallback;
     }
 

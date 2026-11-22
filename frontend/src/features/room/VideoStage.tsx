@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { computeGridLayout } from "./gridLayout";
+import { computeGridLayout, PORTRAIT_ASPECT_RANGE } from "./gridLayout";
 import type { TileModel } from "./types";
 import { VideoTile } from "./VideoTile";
 import styles from "./VideoStage.module.css";
@@ -54,7 +54,12 @@ export function VideoStage({ tiles }: { tiles: TileModel[] }) {
         );
     }
 
-    const layout = computeGridLayout(size.width, size.height, tiles.length, { gap: GAP });
+    // On a tall stage, squarer tiles fill the screen; landscape keeps the camera's 16:9.
+    const portrait = size.height > size.width;
+    const layout = computeGridLayout(size.width, size.height, tiles.length, {
+        gap: GAP,
+        aspectRange: portrait ? PORTRAIT_ASPECT_RANGE : undefined
+    });
 
     return (
         <div ref={ref} className={styles.grid} data-layout="grid">

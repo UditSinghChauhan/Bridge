@@ -7,6 +7,7 @@ import { RecapView } from "../features/meetings/RecapView";
 import { getErrorMessage, getErrorStatus, meetingsApi } from "../lib/api";
 import type { MeetingRecap } from "../lib/types";
 import styles from "../features/meetings/Recap.module.css";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 type RecapState =
     | { status: "loading" }
@@ -15,6 +16,7 @@ type RecapState =
 
 export default function RecapPage() {
     const { meetingId = "" } = useParams();
+    useDocumentTitle(meetingId ? `Recap ${meetingId}` : "Recap");
     const location = useLocation();
     const justEnded = Boolean((location.state as { justEnded?: boolean } | null)?.justEnded);
     const [state, setState] = useState<RecapState>({ status: "loading" });

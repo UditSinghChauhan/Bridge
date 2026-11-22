@@ -4,6 +4,7 @@ import { Avatar } from "../../components/Avatar";
 import { Logo } from "../../components/Logo";
 import type { DeviceStatus } from "./useLocalMedia";
 import { VideoTile } from "./VideoTile";
+import { useAudioLevel } from "./useAudioActivity";
 import styles from "./Lobby.module.css";
 
 interface LobbyProps {
@@ -11,6 +12,8 @@ interface LobbyProps {
     displayName: string;
     username?: string;
     previewStream: MediaStream | null;
+    /** The microphone track, for the level meter (the preview stream is video only, so it never echoes). */
+    micTrack?: MediaStreamTrack | null;
     micOn: boolean;
     cameraOn: boolean;
     micStatus: DeviceStatus;
@@ -22,6 +25,19 @@ interface LobbyProps {
     error?: string | null;
     actions: ReactNode;
     aside?: ReactNode;
+}
+
+/** Three bars that follow your voice, so you know you'll be heard before you join. */
+function MicMeter({ track, on }: { track: MediaStreamTrack | null; on: boolean }) {
+    const level = useAudioLevel(track, on);
+
+    return (
+        <span className={styles.meter} style={{ "--level": level } as React.CSSProperties} aria-hidden="true" data-testid="mic-meter">
+            <span />
+            <span />
+            <span />
+        </span>
+    );
 }
 
 const deviceCopy = (status: DeviceStatus, on: boolean, device: "Microphone" | "Camera") => {
@@ -78,6 +94,7 @@ export function Lobby(props: LobbyProps) {
                     </div>
                     <ul className={styles.devices} aria-live="polite">
                         <li data-status={micStatus === "ready" && micOn ? "on" : micStatus === "blocked" ? "blocked" : "off"}>
+                            {micStatus === "ready" && micOn ? <MicMeter track={props.micTrack ?? null} on={micOn} /> : null}
                             {deviceCopy(micStatus, micOn, "Microphone")}
                         </li>
                         <li data-status={cameraStatus === "ready" && cameraOn ? "on" : cameraStatus === "blocked" ? "blocked" : "off"}>

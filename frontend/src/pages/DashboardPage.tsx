@@ -10,6 +10,7 @@ import { useMeetingHistory } from "../features/meetings/useMeetingHistory";
 import { getErrorMessage, meetingsApi } from "../lib/api";
 import { parseMeetingInput } from "../lib/meetingCode";
 import styles from "./DashboardPage.module.css";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 const greeting = (date = new Date()) => {
     const hour = date.getHours();
@@ -20,6 +21,7 @@ const greeting = (date = new Date()) => {
 };
 
 export default function DashboardPage() {
+    useDocumentTitle("Meetings");
     const { user } = useAuth();
     const navigate = useNavigate();
     const { state, reload } = useMeetingHistory();
@@ -54,7 +56,9 @@ export default function DashboardPage() {
 
     const firstName = (user?.name || user?.username || "").split(" ")[0];
     const live = state.status === "success" ? state.meetings.filter((meeting) => meeting.status === "active") : [];
-    const recent = state.status === "success" ? state.meetings.slice(0, 5) : [];
+    // A live call is listed once, under "Happening now", never again in Recent.
+    const ended = state.status === "success" ? state.meetings.filter((meeting) => meeting.status !== "active") : [];
+    const recent = ended.slice(0, 5);
 
     return (
         <PageShell>
@@ -78,7 +82,7 @@ export default function DashboardPage() {
                             <Field
                                 label="Meeting code or link"
                                 hideLabel
-                                placeholder="kmt-vrqp-xhw or invite link"
+                                placeholder="Code or invite link"
                                 autoComplete="off"
                                 autoCapitalize="none"
                                 spellCheck={false}
@@ -108,15 +112,19 @@ export default function DashboardPage() {
 
             <section className={styles.section} aria-labelledby="recent-title">
                 <div className={styles.sectionHeader}>
-                    <h2 id="recent-title" className={styles.sectionTitle}>Recent meetings</h2>
-                    {state.status === "success" && state.meetings.length > 5 ? <Link to="/history" className={styles.viewAll}>View all</Link> : null}
+                    <h2 id="recent-title" className={styles.sectionTitle}>Recent recaps</h2>
+                    {ended.length > 5 ? <Link to="/history" className={styles.viewAll}>View all</Link> : null}
                 </div>
                 {state.status === "loading" ? <MeetingListSkeleton /> : null}
                 {state.status === "error" ? <MeetingListError message={state.message} onRetry={reload} /> : null}
                 {state.status === "success" && recent.length === 0 ? (
                     <MeetingListEmpty
-                        title="No meetings yet"
-                        description="Start a meeting and share the link. Ended meetings appear here with their recap."
+                        title={live.length ? "No recaps yet" : "No meetings yet"}
+                        description={
+                            live.length
+                                ? "When the host ends a call, its recap appears here."
+                                : "Start a meeting and share the link. Ended meetings appear here with their recap."
+                        }
                         action={<ButtonLink to="/demo" variant="secondary" size="sm">See a sample meeting</ButtonLink>}
                     />
                 ) : null}

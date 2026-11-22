@@ -1,7 +1,9 @@
 import { ButtonLink } from "../components/Button";
 import { StatusScreen } from "../features/room/StatusScreen";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 
 export default function NotFoundPage() {
+    useDocumentTitle("Page not found");
     return (
         <StatusScreen
             title="Page not found"

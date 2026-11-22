@@ -1,270 +1,122 @@
 # Bridge
 
-Bridge is a real-time video collaboration platform built for fast meetings, secure authentication, live participant sync, and persistent meeting insights. It combines a React frontend, an Express + MongoDB backend, Socket.IO for live coordination, and browser-level Playwright coverage for the full meeting lifecycle.
+**Video calls for small teams that end with a written recap.** Start a room in one click, share the link, talk. When the host ends the call, everyone gets the summary, the action items with owners and due days, and the transcript.
+
+**[Try the live demo →](https://bridgefrontend.onrender.com/demo)** No account needed. Join a call with a simulated team, add a line to the chat, end it, and read the recap Bridge writes.
 
 ![Bridge landing page: the headline, the live demo action, and a call with its recap card](docs/screenshots/landing-v3/after/1440-00-first-screen.png)
 
-![Bridge Meeting Room — Live room with participants, chat, and controls](docs/bridge-meeting-room.png)
+| In the call | The recap it produces |
+| --- | --- |
+| ![A Bridge call: four video tiles, the chat panel and the call controls](docs/screenshots/app/room-1440.png) | ![The meeting recap: a one-line summary, action items with owners and due days, key points](docs/screenshots/app/recap-1440.png) |
 
-## Live Links
+- **App:** [bridgefrontend.onrender.com](https://bridgefrontend.onrender.com)
+- **Engineering write-up:** [docs/CASE_STUDY.md](docs/CASE_STUDY.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DESIGN.md](DESIGN.md)
 
-- App: [bridgefrontend.onrender.com](https://bridgefrontend.onrender.com)
-- Live Demo (no sign-up needed, ends in a real recap): [bridgefrontend.onrender.com/demo](https://bridgefrontend.onrender.com/demo)
-- Repository: [github.com/UditSinghChauhan/videoconferencing_app](https://github.com/UditSinghChauhan/videoconferencing_app)
+> [!NOTE]
+> The API runs on a free instance that sleeps when idle; a cold start takes about 20 seconds. The landing page wakes it in the background and the sign-in form shows a "waking the server" status instead of a blank wait. The demo runs entirely in the browser and never waits.
 
-> [!NOTE] 
-> The backend is hosted on a free tier instance and sleeps when idle; a cold start was measured at about 23 seconds. The landing page starts waking it in the background, and the sign-in form shows a live "waking the server" status instead of a blank wait. The demo needs no backend.
+## What it does
 
-## Key Features
+- **Rooms from a link.** One click makes a room with a code like `kmt-vrqp-xhw`. A lobby checks the camera and microphone before anyone sees you.
+- **Peer-to-peer video.** WebRTC mesh: audio and video go directly between participants, never through the server. Camera, microphone and screen share, with automatic reconnection when the network drops.
+- **Live room state.** Socket.IO syncs joins, leaves, chat, removals and the end of the call. Reconnects never create duplicate participants.
+- **Host controls, enforced on the server.** Only the host can remove someone or end the call. The API returns `403` for anyone else; the UI hiding the button is not the protection.
+- **The recap.** When the host ends the call, the server turns the chat and activity log into a summary sentence, action items (owner and due day), key points and topics. It is stored with the meeting and opens from everyone's history. It can be copied as Markdown for Slack, Notion or email.
+- **Secure sessions.** Short-lived JWT access tokens, rotating refresh tokens in an HTTP-only cookie, CSRF protection on refresh and logout, per-device sessions and "log out everywhere".
 
-### Secure Authentication
+### The recap is deterministic, not AI
 
-- JWT access tokens with refresh token rotation
-- Refresh token stored in an HTTP-only cookie
-- CSRF protection for refresh/logout flows
-- Multi-session handling with logout-all support
-- Protected routes with session persistence after refresh
+The summariser (`backend/src/utils/meetingSummary.js`) is rule-based: commitments such as "I'll…" or "Aarav owns…" become action items, weekday and "today" phrases become due days, and recurring noun phrases become topics. No external AI service is called, and the same chat always produces the same recap. The public demo runs a browser copy of the same file, and a parity test fails the build if the two ever disagree.
 
-### Real-Time Collaboration
+## How it's built
 
-- Socket.IO-based live meeting synchronization
-- Instant join, leave, remove, and end-meeting events
-- Real-time chat inside the room
-- Lobby flow before entering a meeting
-- WebRTC-based media sharing with camera, mic, and screen-share controls
+| Layer | Choices |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite, React Router, CSS Modules, Motion |
+| Backend | Node.js, Express, Zod validation, centralised error handling, rate limiting, Helmet |
+| Data | MongoDB with Mongoose (users, sessions, meetings, activity logs, recaps) |
+| Real time | Socket.IO rooms scoped by meeting, authenticated with the access token; WebRTC mesh for media |
+| Testing | Node test runner (unit and integration), Vitest, Playwright end to end, axe accessibility checks |
 
-### Role-Based Meeting Control
+```text
+backend/src/
+  controllers/  routes/  services/  models/  validators/  middlewares/  utils/
+frontend/src/
+  pages/        one file per route
+  features/     room (WebRTC + sockets), meetings, demo, landing
+  auth/  components/  lib/  styles/
+frontend/tests/e2e/
+```
 
-- Host and participant roles are assigned server-side
-- Only the host can end a meeting
-- Only the host can remove participants
-- Permissions are enforced in backend APIs, not just hidden in the UI
-
-### Smart Meeting Summaries
-
-- Summaries are generated server-side using keyword frequency analysis and activity log scoring — no external AI API required. This is a rule-based system, not AI-powered.
-- Meeting summaries are generated automatically when the host ends a meeting
-- Summaries include:
-  - Key points
-  - Highlights
-  - Keywords
-  - Participants involved
-  - Conclusion
-- Summaries are stored in MongoDB and remain available from history
-
-## Architecture Overview
-
-Frontend:
-
-- React with Context API for auth and meeting state
-- React Router for protected navigation
-- Material UI plus custom glassmorphism styling
-- Socket.IO client for live room updates
-
-Backend:
-
-- Node.js + Express
-- MongoDB with Mongoose
-- JWT access/refresh token flow
-- Zod validation and centralized error handling
-- Rate limiting for auth and meeting endpoints
-
-Real-Time Layer:
-
-- Socket.IO rooms scoped by `meetingId`
-- Authenticated socket connections using access tokens
-- Event-driven participant and chat synchronization
-
-## How It Works
-
-1. A user registers or logs in.
-2. The backend creates a tracked session and returns an access token plus refresh-token cookie.
-3. The user joins or creates a meeting using a room code.
-4. A socket connection is established with authentication.
-5. Join, leave, chat, removal, and end-meeting events sync across participants in real time.
-6. When the host ends the meeting, a summary is generated and users are redirected to the summary view.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the request, socket and token flows.
 
 ## Testing
 
-Bridge now includes both API-level certification work and browser-level E2E validation.
-
-- Playwright end-to-end coverage (`frontend/tests/e2e/`) includes:
-  - Register, sign in, and stay signed in after a reload
-  - Meeting create and join by invite link
-  - Real-time chat, mute, and leave/rejoin
-  - Host-only removal: a participant has no remove control and the API returns `403`
-  - Meeting end and redirect to the recap, which both people can open from history
-  - Unauthorized recap access returning `403`
-  - The public demo, which ends in a recap built by the same rules as the server
-  - The room grid reflowing when the window narrows
-  - Axe WCAG 2.1 AA checks on the landing, auth, demo and not-found pages
-
-Every product claim on the landing page names the file that makes it true, and a unit test
-(`frontend/src/features/landing/content.test.ts`) fails the build if one stops matching. The
-engineering write-up that used to be on the page is in [docs/CASE_STUDY.md](docs/CASE_STUDY.md).
-
-To run the suite without a local MongoDB, start a throwaway in-memory one first:
-
 ```bash
-cd backend && npm run db:memory
+cd backend && npm test          # unit + integration (integration uses an in-memory MongoDB)
+cd frontend && npm test         # unit tests (Vitest)
+cd frontend && npm run test:e2e # Playwright: starts both servers itself
 ```
 
-Run E2E tests from `frontend/`:
+The Playwright suite covers:
+
+- Register, sign in, and stay signed in after a reload
+- Create a meeting and join it from an invite link
+- Real-time chat, mute, and leave and rejoin
+- Host-only removal: a participant has no remove control and the API returns `403`
+- Ending the meeting, the redirect to the recap, and both people opening it from history
+- Unauthorised recap access returning `403`
+- The public demo ending in a recap built by the same rules as the server
+- The room grid reflowing when the window narrows
+- Axe WCAG 2.1 AA checks on the landing, auth, demo and not-found pages
+
+Every product claim on the landing page names the source file that makes it true, and a unit test (`frontend/src/features/landing/content.test.ts`) fails the build if one stops matching.
+
+<details>
+<summary>Notes for running the E2E suite</summary>
+
+Playwright starts the backend on port `8100` and the frontend on port `3100`. `backend/.env` must be populated (`MONGODB_URI` and the JWT secrets); run `cd backend && npm run db:memory` for a throwaway database. On Linux the browser needs its system libraries once: `sudo npx playwright install-deps chromium`.
+
+The suite creates real users and meetings in whatever database `MONGODB_URI` points at, and each run uses 3 of the 10 sign-in attempts the auth rate limiter allows per IP per 15 minutes.
+
+</details>
+
+## Run it locally
+
+Requires Node.js 22 (pinned in `.node-version`) and a MongoDB connection string.
 
 ```bash
-npx playwright install chromium   # first run only
-npm run test:e2e
-```
-
-Playwright starts both servers itself — the backend on port `8100` and the frontend on port `3100`
-— so neither needs to be running beforehand. `backend/.env` must be populated, since the backend
-still needs `MONGODB_URI` and its JWT secrets. On Linux the browser also needs its system libraries
-once: `sudo npx playwright install-deps chromium`.
-
-The suite creates real users and meetings in whatever database `MONGODB_URI` points at. Point it at
-a scratch database if you do not want that data in your development one. Note also that the auth
-rate limiter allows 10 attempts per IP per 15 minutes, and each run spends 3 of them from
-`127.0.0.1`, so more than three runs in a 15-minute window will start failing on login.
-
-## Tech Stack
-
-- Frontend: React, React Router, Material UI, custom CSS
-- Backend: Node.js, Express
-- Database: MongoDB
-- Real-time: Socket.IO, WebRTC
-- Validation: Zod
-- Testing: Playwright
-
-## Project Structure
-
-```text
-backend/
-  src/
-    controllers/
-    middlewares/
-    models/
-    routes/
-    services/
-    utils/
-
-frontend/
-  src/
-    contexts/
-    pages/
-    styles/
-    utils/
-  tests/
-    e2e/
-```
-
-## Local Setup
-
-### Prerequisites
-
-- Node.js 22 (pinned in `.node-version`)
-- npm
-- MongoDB connection string
-
-### Backend
-
-```bash
+# API on http://localhost:8000
 cd backend
+cp .env.example .env    # set MONGODB_URI, JWT_SECRET and JWT_REFRESH_SECRET
 npm install
-```
+npm run dev
 
-Create `backend/.env`:
-
-```env
-PORT=8000
-NODE_ENV=development
-MONGODB_URI=your_mongodb_connection_string
-CORS_ORIGIN=http://localhost:3000
-JWT_SECRET=your_access_token_secret
-JWT_REFRESH_SECRET=your_refresh_token_secret
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
-JWT_REFRESH_COOKIE_MAX_AGE_MS=604800000
-```
-
-Start the backend:
-
-```bash
+# Web app on http://localhost:3000
+cd frontend
+cp .env.example .env    # VITE_BACKEND_URL=http://localhost:8000
+npm install
 npm run dev
 ```
 
-### Frontend
+## API
 
-```bash
-cd frontend
-npm install
-```
+| Area | Routes |
+| --- | --- |
+| Auth | `POST /api/v1/users/register` · `login` · `refresh` · `logout` · `logout-all` · `GET /api/v1/users/me` |
+| Meetings | `POST /api/v1/meetings` · `GET /api/v1/meetings` · `GET /api/v1/meetings/:meetingId` |
+| Lifecycle | `POST /api/v1/meetings/:meetingId/join` · `leave` · `end` · `remove-participant` · `PATCH …/settings` |
+| Recap | `GET /api/v1/meetings/:meetingId/summary` |
+| Health | `GET /api/v1/health` |
 
-Create `frontend/.env`:
+## Limits and trade-offs
 
-```env
-REACT_APP_ENV=development
-REACT_APP_BACKEND_URL=http://localhost:8000
-```
-
-Start the frontend:
-
-```bash
-npm start
-```
-
-## Core API Routes
-
-Authentication:
-
-- `POST /api/v1/users/register`
-- `POST /api/v1/users/login`
-- `POST /api/v1/users/refresh`
-- `POST /api/v1/users/logout`
-- `POST /api/v1/users/logout-all`
-- `GET /api/v1/users/me`
-
-Meetings:
-
-- `POST /api/v1/meetings`
-- `GET /api/v1/meetings`
-- `GET /api/v1/meetings/:meetingId`
-- `GET /api/v1/meetings/:meetingId/summary`
-- `POST /api/v1/meetings/:meetingId/join`
-- `POST /api/v1/meetings/:meetingId/leave`
-- `POST /api/v1/meetings/:meetingId/end`
-- `POST /api/v1/meetings/:meetingId/remove-participant`
-- `PATCH /api/v1/meetings/:meetingId/settings`
-
-Health:
-
-- `GET /api/v1/health`
-
-## Challenges Solved
-
-- Secure refresh-token rotation with CSRF validation
-- Multi-session auth handling with logout-all invalidation
-- Preventing duplicate participant presence during reconnects
-- Keeping socket state and database-backed meeting state aligned
-- Enforcing host-only actions at the API layer
-- Generating structured summaries without depending on external AI services
-
-## Future Improvements
-
-- TURN/SFU support for more reliable large-scale video sessions
-- LLM-powered meeting summarization
-- Meeting recording and playback
-- Team/workspace collaboration features
-- Expanded analytics and host controls
-
-## Status
-
-- Production deployed
-- End-to-end browser tested
-- Ready to iterate and extend
+- **Call size.** A mesh sends every stream to every peer, so calls work best with up to about six people. An SFU (for example LiveKit or mediasoup) is the next step past that.
+- **Restrictive networks.** Only STUN is configured by default. Peers behind symmetric NATs or strict corporate firewalls need a TURN relay, which can be supplied through `VITE_ICE_SERVERS` without code changes.
+- **Guests need an account.** Joining a real meeting needs a free account (name, username and password; no email). The demo needs none.
+- **Rule-based recaps.** Deterministic and private, but they read commitments, not nuance. An LLM summariser could sit behind the same recap shape.
 
 ## Author
 
-**Udit Singh Chauhan**
-
-- GitHub: [@UditSinghChauhan](https://github.com/UditSinghChauhan)
-- LinkedIn: [linkedin.com/in/udit-singh-31382137a](https://www.linkedin.com/in/udit-singh-31382137a/)
+Designed and built by **Udit Singh Chauhan** · [GitHub](https://github.com/UditSinghChauhan) · [LinkedIn](https://www.linkedin.com/in/udit-singh-31382137a/)

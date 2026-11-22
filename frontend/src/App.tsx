@@ -32,8 +32,10 @@ function HistoryRoute() {
 }
 
 export default function App() {
+    // React Router 7 made the former v7_startTransition and v7_relativeSplatPath
+    // future flags the default behaviour, so BrowserRouter no longer takes them.
     return (
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter>
             <ToastProvider>
                 <AuthProvider>
                     <a className="skip-link" href="#main">Skip to content</a>

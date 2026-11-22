@@ -50,10 +50,16 @@ const STACK_MIN = 24;
 const STACK_SHOWN = 2;
 
 /** Overlapping faces, for "who was there": at most two, then "+N". */
-export function FaceStack({ people, size = 24, label }: { people: CastId[]; size?: number; label?: string }) {
+export function FaceStack({ people, size = 24, label, others = 0 }: {
+    people: CastId[];
+    size?: number;
+    label?: string;
+    /** People in the call who are not in the cast (the demo's visitor), counted into "+N". */
+    others?: number;
+}) {
     const px = Math.max(STACK_MIN, size);
     const shown = people.slice(0, STACK_SHOWN);
-    const rest = people.length - shown.length;
+    const rest = people.length - shown.length + others;
     const text = Math.max(10, Math.round(px * 0.42));
     return (
         <span className={styles.stack} aria-label={label ?? people.map((id) => CAST[id].name).join(", ")} role="img">

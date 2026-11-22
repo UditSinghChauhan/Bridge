@@ -191,6 +191,28 @@ test.describe("Bridge meeting lifecycle", () => {
         await expect(page.getByText("Enter your password.")).toBeVisible();
     });
 
+    test("sign-in returns to in-app paths only, never to another site", async ({ browser }) => {
+        const { context, page } = await signUp(browser, "Olive Origin");
+        const appOrigin = new URL(page.url()).origin;
+        const nextUrl = (next) => `/auth?next=${encodeURIComponent(next)}`;
+
+        await page.goto(nextUrl("/history"));
+        await expect(page).toHaveURL(`${appOrigin}/history`);
+
+        // Browsers read "\" as "/", drop tabs and collapse dot segments, so each of
+        // these is "//evil.example" in disguise.
+        const offSite = [
+            "//evil.example", "/\\evil.example", "/\t/evil.example", "/.//evil.example",
+            "/a/..//evil.example", "https://evil.example/home"
+        ];
+        for (const next of offSite) {
+            await page.goto(nextUrl(next));
+            await expect(page, next).toHaveURL(`${appOrigin}/home`);
+        }
+
+        await context.close();
+    });
+
     test("the public demo works without an account", async ({ page }) => {
         await page.goto("/demo");
         await page.getByTestId("join-meeting-button").click();
@@ -199,10 +221,15 @@ test.describe("Bridge meeting lifecycle", () => {
         await page.getByLabel("Message everyone").fill("Hello team");
         await page.keyboard.press("Enter");
         await expect(page.getByTestId("chat-log")).toContainText("Hello team");
+        // The scripted stand-up plays out over ~32s and the recap is built from what
+        // was said, so ending the call early correctly yields "Not much to recap".
+        // The hint appears once the script has finished.
+        await expect(page.getByTestId("leave-hint")).toHaveText("End the call to see the recap", { timeout: 45_000 });
         await page.getByTestId("leave-button").click();
         await page.getByTestId("confirm-end-meeting").click();
         await expect(page.getByRole("heading", { name: "Meeting recap" })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Key points" })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Action items" })).toBeVisible();
         await expect(page.getByTestId("recap")).toContainText("Hello team");
     });
 

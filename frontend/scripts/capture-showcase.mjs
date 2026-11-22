@@ -17,10 +17,14 @@ const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_C
 
 /** Opens the landing page and waits until the hero shows the recap card. */
 async function openAtRecap(viewport, deviceScaleFactor = 1) {
-    const page = await browser.newPage({ viewport, deviceScaleFactor, colorScheme: "light" });
+    // Reduced motion pins the hero to its settled recap frame: the call at full
+    // brightness with the card docked. Catching the live loop instead risked a
+    // frame mid-transition, with the call still dimmed (the earlier assets).
+    const page = await browser.newPage({ viewport, deviceScaleFactor, colorScheme: "light", reducedMotion: "reduce" });
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await page.waitForSelector("[data-phase='recap']", { timeout: 20_000 });
-    await page.waitForTimeout(1400);
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(600);
     return page;
 }
 

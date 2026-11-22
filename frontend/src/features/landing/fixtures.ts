@@ -33,8 +33,12 @@ const activity: ActivityEntry[] = [
     { type: "ended", username: "Maya Patel", content: "ended the meeting" }
 ];
 
-/** What Bridge's summariser writes for this stand-up. A fixed clock keeps it stable. */
-export const STANDUP_RECAP = generateMeetingSummary(activity, new Date("2026-10-29T10:18:00Z"));
+/**
+ * What Bridge's summariser writes for this stand-up. A fixed clock keeps it stable.
+ * Times are local (no "Z"), so the recap reads 10:00 in every time zone and
+ * matches the history card's "Thu 10:00" instead of shifting with the visitor.
+ */
+export const STANDUP_RECAP = generateMeetingSummary(activity, new Date("2026-10-29T10:18:00"));
 
 export const MEETING_CODE = "kmt-vrqp-xhw";
 
@@ -43,12 +47,12 @@ export const STANDUP_MEETING: MeetingRecap = {
     meetingId: MEETING_CODE,
     status: "ended",
     hostName: "Maya Patel",
-    createdAt: "2026-10-29T10:00:00Z",
-    endedAt: "2026-10-29T10:18:00Z",
+    createdAt: "2026-10-29T10:00:00",
+    endedAt: "2026-10-29T10:18:00",
     durationMs: 18 * 60 * 1000,
     participantCount: 4,
     summary: STANDUP_RECAP,
-    chat: STANDUP.map((message) => ({ sender: message.sender, content: message.text, sentAt: `2026-10-29T${message.time}:00Z` }))
+    chat: STANDUP.map((message) => ({ sender: message.sender, content: message.text, sentAt: `2026-10-29T${message.time}:00` }))
 };
 
 /** Past meetings for the history card: each recap sentence is the summariser's own output for that call. */
@@ -66,7 +70,7 @@ export const HISTORY = [
             ["Sofia Rossi", "The pricing page copy still feels long."],
             ["Jordan Lee", "Pricing page traffic doubled after the launch email went out."],
             ["Maya Patel", "Let's cut the pricing page to one screen by Friday."]
-        ], "2026-10-27T15:54:00Z")
+        ], "2026-10-27T15:54:00")
     },
     {
         code: "gzu-hkrd-mle",
@@ -76,6 +80,6 @@ export const HISTORY = [
         summary: pastCall([
             ["Aarav Mehta", "The flaky checkout test failed twice overnight."],
             ["Jordan Lee", "I'll pin the browser version in the checkout test today."]
-        ], "2026-10-26T09:26:00Z")
+        ], "2026-10-26T09:26:00")
     }
 ];
