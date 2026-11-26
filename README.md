@@ -1,5 +1,9 @@
 # Bridge
 
+[![CI](https://github.com/UditSinghChauhan/Bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/UditSinghChauhan/Bridge/actions/workflows/ci.yml)
+
+**At a glance:** React 18 + TypeScript · Express · MongoDB · Socket.IO + WebRTC · Node.js 22 · [Live app](https://bridgefrontend.onrender.com) · [Demo](https://bridgefrontend.onrender.com/demo)
+
 **Video calls for small teams that end with a written recap.** Start a room in one click, share the link, talk. When the host ends the call, everyone gets the summary, the action items with owners and due days, and the transcript.
 
 **[Try the live demo →](https://bridgefrontend.onrender.com/demo)** No account needed. Join a call with a simulated team, add a line to the chat, end it, and read the recap Bridge writes.
@@ -10,8 +14,7 @@
 | --- | --- |
 | ![A Bridge call: four video tiles, the chat panel and the call controls](docs/screenshots/app/room-1440.png) | ![The meeting recap: a one-line summary, action items with owners and due days, key points](docs/screenshots/app/recap-1440.png) |
 
-- **App:** [bridgefrontend.onrender.com](https://bridgefrontend.onrender.com)
-- **Engineering write-up:** [docs/CASE_STUDY.md](docs/CASE_STUDY.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DESIGN.md](DESIGN.md)
+**Engineering write-up:** [docs/CASE_STUDY.md](docs/CASE_STUDY.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DESIGN.md](DESIGN.md)
 
 > [!NOTE]
 > The API runs on a free instance that sleeps when idle; a cold start takes about 20 seconds. The landing page wakes it in the background and the sign-in form shows a "waking the server" status instead of a blank wait. The demo runs entirely in the browser and never waits.
@@ -84,21 +87,53 @@ The suite creates real users and meetings in whatever database `MONGODB_URI` poi
 
 ## Run it locally
 
-Requires Node.js 22 (pinned in `.node-version`) and a MongoDB connection string.
+Requires Node.js 22 (pinned in `.node-version`). Run each block in its own terminal from the repository root.
+
+**1. Database.** Skip this if you already have a MongoDB connection string. Otherwise start a throwaway one (data is lost when it stops):
 
 ```bash
-# API on http://localhost:8000
 cd backend
-cp .env.example .env    # set MONGODB_URI, JWT_SECRET and JWT_REFRESH_SECRET
 npm install
-npm run dev
+npm run db:memory       # MongoDB on 127.0.0.1:27017; the first run downloads it
+```
 
-# Web app on http://localhost:3000
-cd frontend
-cp .env.example .env    # VITE_BACKEND_URL=http://localhost:8000
+**2. API** on http://localhost:8000:
+
+```bash
+cd backend
+cp .env.example .env    # set MONGODB_URI (mongodb://127.0.0.1:27017/bridge with db:memory) and JWT_SECRET
 npm install
 npm run dev
 ```
+
+**3. Web app:**
+
+```bash
+cd frontend
+cp .env.example .env    # already points at http://localhost:8000
+npm install
+npm run dev
+```
+
+Then open **http://localhost:3000**, create an account and start a meeting. The demo works at http://localhost:3000/demo without the API.
+
+### Environment variables
+
+Every variable is documented in [backend/.env.example](backend/.env.example) and [frontend/.env.example](frontend/.env.example).
+
+| Backend | | Purpose |
+| --- | --- | --- |
+| `MONGODB_URI` | Required | MongoDB connection string. The API exits on start without it. |
+| `JWT_SECRET` | Required | Signs access tokens. |
+| `JWT_REFRESH_SECRET` | Optional | Signs refresh tokens. Falls back to `JWT_SECRET`; use a separate value in production. |
+| `NODE_ENV` | Optional | `production` limits CORS to the allow-list and sends the refresh cookie `SameSite=None; Secure`. |
+| `CORS_ORIGIN` | Optional | Production only: extra allowed web origins, comma-separated. |
+| `PORT`, `LOG_LEVEL`, token lifetimes, `COOKIE_SAME_SITE`, `AUTH_RATE_LIMIT_MAX` | Optional | Defaults suit local use. |
+
+| Frontend | | Purpose |
+| --- | --- | --- |
+| `VITE_BACKEND_URL` | Optional | API base URL. Defaults to `http://localhost:8000` in development and to the page's own origin in a production build, so set it when the API is hosted elsewhere. |
+| `VITE_ICE_SERVERS` | Optional | Extra STUN/TURN servers as JSON (see [Limits and trade-offs](#limits-and-trade-offs)). Read at build time. |
 
 ## API
 
@@ -120,3 +155,7 @@ npm run dev
 ## Author
 
 Designed and built by **Udit Singh Chauhan** · [GitHub](https://github.com/UditSinghChauhan) · [LinkedIn](https://www.linkedin.com/in/udit-singh-31382137a/)
+
+## License
+
+[MIT](LICENSE) © 2026 Udit Singh Chauhan
