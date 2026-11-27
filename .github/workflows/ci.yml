@@ -27,6 +27,17 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      # mongodb-memory-server downloads MongoDB on first use. The version is
+      # pinned in backend/package.json ("config.mongodbMemoryServer.version");
+      # the binary also depends on the runner image (ImageOS, e.g. ubuntu24).
+      - name: Read the pinned MongoDB version
+        id: mongoms
+        run: echo "key=mongodb-binaries-${ImageOS}-${RUNNER_ARCH}-$(node -p "require('./package.json').config.mongodbMemoryServer.version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the MongoDB binary
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ steps.mongoms.outputs.key }}
       # Integration tests start the real app against mongodb-memory-server.
       - run: npm test
 
