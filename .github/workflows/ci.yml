@@ -27,6 +27,17 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      # mongodb-memory-server downloads MongoDB on first use. The version is
+      # pinned in backend/package.json ("config.mongodbMemoryServer.version");
+      # the binary also depends on the runner image (ImageOS, e.g. ubuntu24).
+      - name: Read the pinned MongoDB version
+        id: mongoms
+        run: echo "key=mongodb-binaries-${ImageOS}-${RUNNER_ARCH}-$(node -p "require('./package.json').config.mongodbMemoryServer.version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the MongoDB binary
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ steps.mongoms.outputs.key }}
       # Integration tests start the real app against mongodb-memory-server.
       - run: npm test
 
@@ -49,3 +60,62 @@ jobs:
       # Includes the recap parity test and the landing-page claims test.
       - run: npm test
       - run: npm run build
+
+  e2e:
+    name: E2E · Playwright (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Read by frontend/playwright.config.js, which starts the API and web app.
+      MONGODB_URI: mongodb://127.0.0.1:27017/bridge-e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - name: Read the pinned MongoDB version
+        id: mongoms
+        working-directory: backend
+        run: echo "key=mongodb-binaries-${ImageOS}-${RUNNER_ARCH}-$(node -p "require('./package.json').config.mongodbMemoryServer.version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the MongoDB binary
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ steps.mongoms.outputs.key }}
+      # Runs in the background for the rest of the job.
+      - name: Start the in-memory MongoDB
+        working-directory: backend
+        run: |
+          npm run db:memory > "$RUNNER_TEMP/mongodb.log" 2>&1 &
+          for _ in $(seq 1 90); do
+            if grep -q "In-memory MongoDB ready" "$RUNNER_TEMP/mongodb.log"; then
+              cat "$RUNNER_TEMP/mongodb.log"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::The in-memory MongoDB did not start within 3 minutes"
+          cat "$RUNNER_TEMP/mongodb.log"
+          exit 1
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      # CI=true gives one retry, the HTML report and traces of failed tests.
+      - run: npm run test:e2e
+        working-directory: frontend
+      - name: Upload the Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

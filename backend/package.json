@@ -40,7 +40,8 @@
   },
   "config": {
     "mongodbMemoryServer": {
-      "disablePostinstall": "1"
+      "disablePostinstall": "1",
+      "version": "8.2.6"
     }
   }
 }

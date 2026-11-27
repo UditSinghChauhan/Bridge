@@ -76,6 +76,8 @@ The Playwright suite covers:
 
 Every product claim on the landing page names the source file that makes it true, and a unit test (`frontend/src/features/landing/content.test.ts`) fails the build if one stops matching.
 
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs three jobs on every pull request and on `master`: backend tests, frontend checks (typecheck, lint, unit, build), and **E2E · Playwright (Chromium)**, which runs the suite above against an in-memory MongoDB with one retry. When it fails, the HTML report and traces are uploaded as the `playwright-report` artifact on the run.
+
 <details>
 <summary>Notes for running the E2E suite</summary>
 
