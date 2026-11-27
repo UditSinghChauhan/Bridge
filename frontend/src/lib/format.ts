@@ -33,57 +33,92 @@ export const formatElapsed = (ms: number): string => {
     return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
 };
 
-const relativeFormatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-const dateFormatter = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
-const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+export interface DateFormatOptions {
+    /** BCP 47 tag such as "en-IN". Omitted: the visitor's locale. */
+    locale?: string;
+    /** IANA zone such as "Asia/Kolkata". Omitted: the visitor's time zone. */
+    timeZone?: string;
+}
 
-export const formatDateTime = (value: string | Date): string => dateFormatter.format(new Date(value));
-export const formatTime = (value: string | Date): string => timeFormatter.format(new Date(value));
-
-/** "just now", "12 minutes ago", "yesterday", then an absolute date after a week. */
-export const formatRelative = (value: string | Date, now: Date = new Date()): string => {
-    const diffMs = new Date(value).getTime() - now.getTime();
-    const absMs = Math.abs(diffMs);
-
-    if (absMs < MINUTE) {
-        return "just now";
-    }
-
-    if (absMs < HOUR) {
-        return relativeFormatter.format(Math.round(diffMs / MINUTE), "minute");
-    }
-
-    if (absMs < 24 * HOUR) {
-        return relativeFormatter.format(Math.round(diffMs / HOUR), "hour");
-    }
-
-    if (absMs < 7 * 24 * HOUR) {
-        return relativeFormatter.format(Math.round(diffMs / (24 * HOUR)), "day");
-    }
-
-    return formatDateTime(value);
-};
-
-const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "long" });
-const monthDayFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
-const fullDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
-
-const startOfDay = (date: Date): number => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+export interface DateFormatters {
+    formatDateTime: (value: string | Date) => string;
+    formatTime: (value: string | Date) => string;
+    formatRelative: (value: string | Date, now?: Date) => string;
+    formatCalendarDay: (value: string | Date, now?: Date) => string;
+}
 
 /**
- * A list date the way Mail and Messages show one: the time for today,
- * "Yesterday", the weekday within the last week, then "Nov 14" (with the year
- * once it is not this year). Calendar days in the viewer's time zone.
+ * Date formatters for one locale and time zone. The app uses the visitor's
+ * (the exports below); tests pass both so results do not depend on the machine.
  */
-export const formatCalendarDay = (value: string | Date, now: Date = new Date()): string => {
-    const date = new Date(value);
-    const days = Math.round((startOfDay(now) - startOfDay(date)) / (24 * HOUR));
+export const createDateFormatters = ({ locale, timeZone }: DateFormatOptions = {}): DateFormatters => {
+    const relativeFormatter = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone });
+    const timeFormatter = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", timeZone });
+    const weekdayFormatter = new Intl.DateTimeFormat(locale, { weekday: "long", timeZone });
+    const monthDayFormatter = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", timeZone });
+    const fullDateFormatter = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric", timeZone });
+    // Fixed locale: only the numeric parts are read, never shown.
+    const calendarPartsFormatter = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "numeric", day: "numeric", timeZone });
 
-    if (days <= 0) return formatTime(date);
-    if (days === 1) return "Yesterday";
-    if (days < 7) return weekdayFormatter.format(date);
-    return date.getFullYear() === now.getFullYear() ? monthDayFormatter.format(date) : fullDateFormatter.format(date);
+    /** The calendar day `date` falls on in `timeZone`, as a year and a day count. */
+    const calendarDay = (date: Date): { year: number; dayNumber: number } => {
+        const parts: Record<string, number> = {};
+        for (const { type, value } of calendarPartsFormatter.formatToParts(date)) {
+            parts[type] = Number(value);
+        }
+        const year = parts.year ?? 0;
+        return { year, dayNumber: Date.UTC(year, (parts.month ?? 1) - 1, parts.day ?? 1) / (24 * HOUR) };
+    };
+
+    const formatDateTime = (value: string | Date): string => dateFormatter.format(new Date(value));
+    const formatTime = (value: string | Date): string => timeFormatter.format(new Date(value));
+
+    /** "just now", "12 minutes ago", "yesterday", then an absolute date after a week. */
+    const formatRelative = (value: string | Date, now: Date = new Date()): string => {
+        const diffMs = new Date(value).getTime() - now.getTime();
+        const absMs = Math.abs(diffMs);
+
+        if (absMs < MINUTE) {
+            return "just now";
+        }
+
+        if (absMs < HOUR) {
+            return relativeFormatter.format(Math.round(diffMs / MINUTE), "minute");
+        }
+
+        if (absMs < 24 * HOUR) {
+            return relativeFormatter.format(Math.round(diffMs / HOUR), "hour");
+        }
+
+        if (absMs < 7 * 24 * HOUR) {
+            return relativeFormatter.format(Math.round(diffMs / (24 * HOUR)), "day");
+        }
+
+        return formatDateTime(value);
+    };
+
+    /**
+     * A list date the way Mail and Messages show one: the time for today,
+     * "Yesterday", the weekday within the last week, then "Nov 14" (with the year
+     * once it is not this year). Calendar days in the formatter's time zone.
+     */
+    const formatCalendarDay = (value: string | Date, now: Date = new Date()): string => {
+        const date = new Date(value);
+        const day = calendarDay(date);
+        const today = calendarDay(now);
+        const days = today.dayNumber - day.dayNumber;
+
+        if (days <= 0) return formatTime(date);
+        if (days === 1) return "Yesterday";
+        if (days < 7) return weekdayFormatter.format(date);
+        return day.year === today.year ? monthDayFormatter.format(date) : fullDateFormatter.format(date);
+    };
+
+    return { formatDateTime, formatTime, formatRelative, formatCalendarDay };
 };
+
+export const { formatDateTime, formatTime, formatRelative, formatCalendarDay } = createDateFormatters();
 
 export const initialsFor = (name: string): string => {
     const parts = name.trim().split(/[\s_.-]+/).filter(Boolean);
