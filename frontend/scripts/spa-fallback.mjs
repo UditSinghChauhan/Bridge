@@ -5,10 +5,12 @@
 // /* -> /index.html (Render: Settings -> Redirects/Rewrites).
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // Keep in sync with the static paths in src/App.tsx.
 const STATIC_ROUTES = ["demo", "auth", "home", "history"];
-const buildDir = new URL("../build/", import.meta.url).pathname;
+// fileURLToPath, not URL.pathname: on Windows .pathname gives "/C:/...".
+const buildDir = fileURLToPath(new URL("../build/", import.meta.url));
 const index = join(buildDir, "index.html");
 
 for (const route of STATIC_ROUTES) {
